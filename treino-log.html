@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Treino Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #17181B;
+    --bg-elevated: #1F2124;
+    --bg-card: #232529;
+    --line: #2E3136;
+    --text: #F2F0EB;
+    --text-dim: #8B8F96;
+    --accent: #E8453C;
+    --accent-dim: #E8453C33;
+    --ok: #6FCF97;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;}
+  body{min-height:100vh; display:flex; justify-content:center;}
+  #app{width:100%; max-width:480px; min-height:100vh; display:flex; flex-direction:column; padding-bottom:84px; position:relative;}
+
+  header.top{padding:22px 20px 10px; display:flex; align-items:baseline; justify-content:space-between;}
+  header.top h1{font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:1px; margin:0; line-height:1;}
+  header.top .sub{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px;}
+
+  .barbell{display:flex; align-items:center; gap:8px; margin:6px 20px 18px; opacity:.55;}
+  .barbell .plate{width:9px; height:9px; border-radius:50%; background:var(--accent);}
+  .barbell .bar{flex:1; height:2px; background:var(--line);}
+
+  main{flex:1; padding:0 20px;}
+  section{display:none;}
+  section.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .empty{text-align:center; padding:60px 20px; color:var(--text-dim);}
+  .empty .big{font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--text); margin-bottom:8px; letter-spacing:.5px;}
+
+  /* Exercise grid (log screen) */
+  .ex-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;}
+  .ex-tile{background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 14px; text-align:left; cursor:pointer; transition:border-color .15s, transform .1s;}
+  .ex-tile:active{transform:scale(.97);}
+  .ex-tile .name{font-weight:700; font-size:15px; margin-bottom:6px; display:block;}
+  .ex-tile .load{font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--accent); letter-spacing:.5px;}
+  .ex-tile .load span{font-family:'Inter',sans-serif; font-size:12px; color:var(--text-dim); font-weight:500; margin-left:3px;}
+
+  /* Logging form (modal sheet) */
+  .sheet-overlay{position:fixed; inset:0; background:#000000AA; display:none; align-items:flex-end; justify-content:center; z-index:20;}
+  .sheet-overlay.active{display:flex;}
+  .sheet{width:100%; max-width:480px; background:var(--bg-elevated); border-radius:20px 20px 0 0; padding:22px 20px 28px; animation:slideUp .25s ease;}
+  @keyframes slideUp{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .sheet h2{font-family:'Bebas Neue',sans-serif; font-size:26px; margin:0 0 4px; letter-spacing:.5px;}
+  .sheet .locked-note{font-size:12px; color:var(--text-dim); margin-bottom:18px;}
+
+  .field-row{display:flex; gap:10px; margin-bottom:14px;}
+  .field{flex:1;}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); margin-bottom:6px;}
+  .field input{width:100%; background:var(--bg-card); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-size:18px; font-weight:700; font-family:'Inter',sans-serif;}
+  .field input:focus{outline:none; border-color:var(--accent);}
+  .stepper{display:flex; align-items:center; background:var(--bg-card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .stepper button{background:none; border:none; color:var(--text); font-size:20px; width:38px; height:44px; cursor:pointer;}
+  .stepper button:active{background:var(--line);}
+  .stepper input{border:none; background:none; text-align:center; padding:0; width:auto; flex:1;}
+
+  .update-lock{display:flex; align-items:center; gap:8px; margin:4px 0 20px; font-size:13px; color:var(--text-dim);}
+  .update-lock input{width:16px; height:16px; accent-color:var(--accent);}
+
+  button.primary{width:100%; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:16px; font-size:15px; font-weight:700; letter-spacing:.3px; cursor:pointer;}
+  button.primary:active{opacity:.85;}
+  button.ghost{width:100%; background:none; border:1px solid var(--line); color:var(--text-dim); border-radius:12px; padding:13px; font-size:14px; margin-top:10px; cursor:pointer;}
+
+  /* Exercises management */
+  .ex-list-item{display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px;}
+  .ex-list-item .name{font-weight:700; font-size:15px;}
+  .ex-list-item .load{font-family:'Bebas Neue',sans-serif; color:var(--accent); font-size:20px; margin-top:2px;}
+  .ex-list-item .actions{display:flex; gap:14px;}
+  .ex-list-item .actions button{background:none; border:none; color:var(--text-dim); font-size:13px; cursor:pointer; padding:4px;}
+
+  .add-ex-form{background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-top:18px;}
+  .add-ex-form h3{font-family:'Bebas Neue',sans-serif; font-size:18px; margin:0 0 12px; letter-spacing:.5px; color:var(--text-dim);}
+
+  /* Settings */
+  .field.full{margin-bottom:16px;}
+  .field.full input{font-size:14px; font-weight:400;}
+  .status-pill{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim); margin-top:10px;}
+  .status-pill .dot{width:7px; height:7px; border-radius:50%; background:var(--ok);}
+  .status-pill.off .dot{background:#666;}
+
+  /* Session log (toast list) */
+  .session-log{margin-top:26px;}
+  .session-log h3{font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim); margin-bottom:10px;}
+  .session-item{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .session-item .l{color:var(--text-dim);}
+
+  /* Toast */
+  #toast{position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--bg-card); border:1px solid var(--line); padding:11px 18px; border-radius:30px; font-size:13px; font-weight:600; opacity:0; transition:all .25s ease; z-index:30; white-space:nowrap;}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast.error{border-color:var(--accent); color:var(--accent);}
+
+  nav.bottom{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:var(--bg-elevated); border-top:1px solid var(--line); display:flex; padding:8px 10px calc(8px + env(safe-area-inset-bottom));}
+  nav.bottom button{flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 0; font-size:11px; font-weight:600; letter-spacing:.3px; cursor:pointer;}
+  nav.bottom button svg{width:20px; height:20px;}
+  nav.bottom button.active{color:var(--accent);}
+
+  ::placeholder{color:#5A5E64;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div>
+      <h1 id="header-title">Registrar</h1>
+      <div class="sub" id="header-sub">toque no exercício</div>
+    </div>
+  </header>
+  <div class="barbell"><div class="plate"></div><div class="bar"></div><div class="plate"></div></div>
+
+  <main>
+    <!-- LOG SCREEN -->
+    <section id="screen-log" class="active">
+      <div id="ex-grid" class="ex-grid"></div>
+      <div id="log-empty" class="empty" style="display:none;">
+        <div class="big">Nenhum exercício ainda</div>
+        Vá na aba <strong>Exercícios</strong> e adicione os seus, com a carga travada de cada um.
+      </div>
+      <div class="session-log" id="session-log" style="display:none;">
+        <h3>Registrado agora</h3>
+        <div id="session-items"></div>
+      </div>
+    </section>
+
+    <!-- EXERCISES SCREEN -->
+    <section id="screen-exercises">
+      <div id="ex-list"></div>
+      <div id="ex-list-empty" class="empty" style="display:none;">
+        <div class="big">Sua lista está vazia</div>
+        Adicione o primeiro exercício abaixo.
+      </div>
+      <div class="add-ex-form">
+        <h3>Adicionar exercício</h3>
+        <div class="field-row">
+          <div class="field" style="flex:2;">
+            <label>Nome</label>
+            <input id="new-ex-name" type="text" placeholder="Supino reto">
+          </div>
+          <div class="field">
+            <label>Carga (kg)</label>
+            <input id="new-ex-load" type="number" inputmode="decimal" placeholder="60">
+          </div>
+        </div>
+        <button class="primary" onclick="addExercise()">Adicionar</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS SCREEN -->
+    <section id="screen-settings">
+      <div class="field full">
+        <label>URL do Web App (Google Apps Script)</label>
+        <input id="webapp-url" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <button class="primary" onclick="saveSettings()">Salvar</button>
+      <div id="conn-status" class="status-pill off"><div class="dot"></div> nenhuma URL configurada</div>
+      <div class="add-ex-form" style="margin-top:24px;">
+        <h3>Como conectar</h3>
+        <div style="font-size:13px; line-height:1.6; color:var(--text-dim);">
+          1. Crie uma planilha Google com uma aba chamada <strong>Treinos</strong>.<br>
+          2. Extensões → Apps Script → cole o script que o Claude te passou.<br>
+          3. Implantar → Nova implantação → Web app → Executar como "Eu" → Quem tem acesso "Qualquer pessoa".<br>
+          4. Cole a URL gerada aqui em cima.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- LOGGING SHEET -->
+  <div class="sheet-overlay" id="log-overlay">
+    <div class="sheet">
+      <h2 id="sheet-ex-name">Exercício</h2>
+      <div class="locked-note">carga travada — ajuste se precisar</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Carga (kg)</label>
+          <input id="log-carga" type="number" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Séries</label>
+          <div class="stepper">
+            <button onclick="step('log-series',-1)">−</button>
+            <input id="log-series" type="number" value="3">
+            <button onclick="step('log-series',1)">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Reps</label>
+          <div class="stepper">
+            <button onclick="step('log-reps',-1)">−</button>
+            <input id="log-reps" type="number" value="10">
+            <button onclick="step('log-reps',1)">+</button>
+          </div>
+        </div>
+      </div>
+      <label class="update-lock">
+        <input type="checkbox" id="update-lock-checkbox">
+        Atualizar a carga travada deste exercício para o valor acima
+      </label>
+      <button class="primary" onclick="submitLog()">Registrar</button>
+      <button class="ghost" onclick="closeSheet()">Cancelar</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <nav class="bottom">
+    <button id="nav-log" class="active" onclick="showScreen('log')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Registrar
+    </button>
+    <button id="nav-exercises" onclick="showScreen('exercises')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5l11 11M4 4l3 3M20 20l-3-3M2 8l4-4M22 16l-4 4M7.5 4.5l3 3M4.5 7.5l3 3M20.5 13.5l-3-3M16.5 19.5l-3-3"/></svg>
+      Exercícios
+    </button>
+    <button id="nav-settings" onclick="showScreen('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.32.44.6 1.51.65"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+</div>
+
+<script>
+let state = { exercises: [], config: {}, sessionLog: [], selectedExId: null };
+
+async function loadAll(){
+  try{
+    const ex = await window.storage.get('exercises', false);
+    state.exercises = ex ? JSON.parse(ex.value) : [];
+  }catch(e){ state.exercises = []; }
+  try{
+    const cfg = await window.storage.get('config', false);
+    state.config = cfg ? JSON.parse(cfg.value) : {};
+  }catch(e){ state.config = {}; }
+  renderExGrid();
+  renderExList();
+  renderSettings();
+}
+
+async function persistExercises(){
+  try{
+    await window.storage.set('exercises', JSON.stringify(state.exercises), false);
+  }catch(e){ showToast('Erro ao salvar exercícios', true); }
+}
+
+async function persistConfig(){
+  try{
+    await window.storage.set('config', JSON.stringify(state.config), false);
+  }catch(e){ showToast('Erro ao salvar ajustes', true); }
+}
+
+function showScreen(name){
+  ['log','exercises','settings'].forEach(s=>{
+    document.getElementById('screen-'+s).classList.toggle('active', s===name);
+    document.getElementById('nav-'+s).classList.toggle('active', s===name);
+  });
+  const titles = {log:['Registrar','toque no exercício'], exercises:['Exercícios','sua lista com carga travada'], settings:['Ajustes','conexão com a planilha']};
+  document.getElementById('header-title').textContent = titles[name][0];
+  document.getElementById('header-sub').textContent = titles[name][1];
+}
+
+function renderExGrid(){
+  const grid = document.getElementById('ex-grid');
+  const empty = document.getElementById('log-empty');
+  grid.innerHTML = '';
+  if(state.exercises.length === 0){ empty.style.display='block'; grid.style.display='none'; return; }
+  empty.style.display='none'; grid.style.display='grid';
+  state.exercises.forEach(ex=>{
+    const tile = document.createElement('button');
+    tile.className = 'ex-tile';
+    tile.innerHTML = `<span class="name">${escapeHtml(ex.name)}</span><span class="load">${ex.carga}<span>kg</span></span>`;
+    tile.onclick = ()=> openLogSheet(ex.id);
+    grid.appendChild(tile);
+  });
+}
+
+function renderExList(){
+  const list = document.getElementById('ex-list');
+  const empty = document.getElementById('ex-list-empty');
+  list.innerHTML = '';
+  if(state.exercises.length === 0){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  state.exercises.forEach(ex=>{
+    const item = document.createElement('div');
+    item.className = 'ex-list-item';
+    item.innerHTML = `
+      <div>
+        <div class="name">${escapeHtml(ex.name)}</div>
+        <div class="load">${ex.carga} kg</div>
+      </div>
+      <div class="actions">
+        <button onclick="editExercise('${ex.id}')">editar</button>
+        <button onclick="removeExercise('${ex.id}')">remover</button>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function renderSettings(){
+  document.getElementById('webapp-url').value = state.config.webAppUrl || '';
+  const pill = document.getElementById('conn-status');
+  if(state.config.webAppUrl){
+    pill.classList.remove('off');
+    pill.innerHTML = '<div class="dot"></div> URL configurada';
+  } else {
+    pill.classList.add('off');
+    pill.innerHTML = '<div class="dot"></div> nenhuma URL configurada';
+  }
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function addExercise(){
+  const name = document.getElementById('new-ex-name').value.trim();
+  const carga = parseFloat(document.getElementById('new-ex-load').value);
+  if(!name || isNaN(carga)){ showToast('Preencha nome e carga', true); return; }
+  state.exercises.push({ id: 'ex_'+Date.now(), name, carga });
+  await persistExercises();
+  document.getElementById('new-ex-name').value='';
+  document.getElementById('new-ex-load').value='';
+  renderExGrid(); renderExList();
+  showToast('Exercício adicionado');
+}
+
+async function editExercise(id){
+  const ex = state.exercises.find(e=>e.id===id);
+  if(!ex) return;
+  const newName = prompt('Nome do exercício:', ex.name);
+  if(newName === null) return;
+  const newLoadStr = prompt('Carga travada (kg):', ex.carga);
+  if(newLoadStr === null) return;
+  const newLoad = parseFloat(newLoadStr);
+  if(!newName.trim() || isNaN(newLoad)){ showToast('Valores inválidos', true); return; }
+  ex.name = newName.trim(); ex.carga = newLoad;
+  await persistExercises();
+  renderExGrid(); renderExList();
+  showToast('Exercício atualizado');
+}
+
+async function removeExercise(id){
+  if(!confirm('Remover este exercício da lista?')) return;
+  state.exercises = state.exercises.filter(e=>e.id!==id);
+  await persistExercises();
+  renderExGrid(); renderExList();
+}
+
+async function saveSettings(){
+  const url = document.getElementById('webapp-url').value.trim();
+  state.config.webAppUrl = url;
+  await persistConfig();
+  renderSettings();
+  showToast('Ajustes salvos');
+}
+
+function openLogSheet(id){
+  const ex = state.exercises.find(e=>e.id===id);
+  if(!ex) return;
+  state.selectedExId = id;
+  document.getElementById('sheet-ex-name').textContent = ex.name;
+  document.getElementById('log-carga').value = ex.carga;
+  document.getElementById('log-series').value = 3;
+  document.getElementById('log-reps').value = 10;
+  document.getElementById('update-lock-checkbox').checked = false;
+  document.getElementById('log-overlay').classList.add('active');
+}
+
+function closeSheet(){
+  document.getElementById('log-overlay').classList.remove('active');
+}
+
+function step(id, delta){
+  const el = document.getElementById(id);
+  el.value = Math.max(0, (parseInt(el.value)||0) + delta);
+}
+
+async function submitLog(){
+  if(!state.config.webAppUrl){
+    showToast('Configure a URL nos Ajustes primeiro', true);
+    showScreen('settings');
+    closeSheet();
+    return;
+  }
+  const ex = state.exercises.find(e=>e.id===state.selectedExId);
+  if(!ex) return;
+  const carga = parseFloat(document.getElementById('log-carga').value);
+  const series = parseInt(document.getElementById('log-series').value);
+  const reps = parseInt(document.getElementById('log-reps').value);
+  if(isNaN(carga) || isNaN(series) || isNaN(reps)){ showToast('Valores inválidos', true); return; }
+
+  const payload = { exercicio: ex.name, carga, series, reps };
+
+  try{
+    await fetch(state.config.webAppUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if(document.getElementById('update-lock-checkbox').checked){
+      ex.carga = carga;
+      await persistExercises();
+      renderExGrid(); renderExList();
+    }
+    addSessionItem(ex.name, carga, series, reps);
+    showToast('Registrado ✓');
+    closeSheet();
+  }catch(err){
+    showToast('Falha ao enviar — verifique a URL', true);
+  }
+}
+
+function addSessionItem(name, carga, series, reps){
+  state.sessionLog.unshift({name, carga, series, reps, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+  const wrap = document.getElementById('session-log');
+  wrap.style.display = 'block';
+  const container = document.getElementById('session-items');
+  container.innerHTML = '';
+  state.sessionLog.slice(0,8).forEach(it=>{
+    const row = document.createElement('div');
+    row.className = 'session-item';
+    row.innerHTML = `<span>${escapeHtml(it.name)} — ${it.carga}kg × ${it.reps} (${it.series}x)</span><span class="l">${it.time}</span>`;
+    container.appendChild(row);
+  });
+}
+
+let toastTimer;
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isError ? 'show error' : 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+loadAll();
+</script>
+</body>
+</html>
